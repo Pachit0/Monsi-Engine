@@ -1,6 +1,10 @@
-# MonsiEngine
+<div align="center">
+  <img src="Sandbox/assets/textures/logo.png" alt="Monsi Engine Logo">
+  <h1>Monsi Engine</h1>
+  <p>A lightweight, modular, and high-performance engine built in C++ for game and graphics development.</p>
+</div>
 
-**Monsi Engine** is a lightweight, modular, and high-performance engine built in C++ for game and graphics development.
+![Monsi Engine Showcase](Sandbox/assets/showcase.png)
 
 ## Features In Development
 
@@ -24,11 +28,13 @@
 - OpenGL 4.6
 
 ### Build Instructions
+
 ```bash
-git clone --recurse-submodules https://github.com/Pachit0/MonsiEngine.git
-cd MonsiEngine
+git clone
+cd Monsi-Engine
 mkdir build && cd build
 cmake ..
-make OR cmake build . --config <debug/release>
-If you are using visual studio go to: tools->options->CMake->CMake Executable directory: C:\Program Files\CMake\bin (make sure you have CMake 4.4)
+cmake --build . --config <Debug/Release>
 ```
+
+> **Visual Studio Users:** Go to **Tools → Options → CMake** and set the **CMake Executable directory** to `C:\Program Files\CMake\bin` (ensure CMake 4.4 is installed).

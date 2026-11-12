@@ -247,9 +247,9 @@ namespace Monsi {
 				if (ImGui::MenuItem("Transform")) {
 					m_Scene->CreateEntity();
 				}
-				ImGui::EndPopup();
+				ImGui::EndMenu();
 			}
-			ImGui::EndMenu();
+			ImGui::EndPopup();
 		}
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())

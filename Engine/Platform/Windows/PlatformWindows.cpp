@@ -10,7 +10,11 @@
 #include "Input.h"
 #include "MonsiKeyCodes.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <glad/glad.h>
+
 
 namespace Monsi {
 	static void GLFWErrorCallback(int error_code, const char* description) {
@@ -133,6 +137,12 @@ namespace Monsi {
 			}
 			});
 
+		GLFWimage icon;
+		icon.pixels = stbi_load(TEXTURE_PATH "icon.png", &icon.width, &icon.height, 0, 4);
+		if (icon.pixels) {
+			glfwSetWindowIcon(m_Window, 1,&icon);
+			stbi_image_free(icon.pixels);
+		}
 	}
 
 	void PlatformWindows::Shutdown() {
