@@ -243,6 +243,7 @@ void Sandbox3D::OnImGuiDraw() {
 		ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left_top);
 		ImGui::DockBuilderDockWindow("Animation Settings", dock_id_left_bottom);
 		ImGui::DockBuilderDockWindow("Properties", dock_id_left_bottom);
+		ImGui::DockBuilderDockWindow("Markov's model", dock_id_left_bottom);
 
 		if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dock_id_main)) {
 			node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;
@@ -271,6 +272,64 @@ void Sandbox3D::OnImGuiDraw() {
 	m_Unit.DrawGizmo(imagePosition.x, imagePosition.y, imageSize.x, imageSize.y);
 
 	ImGui::End();
+
+	static bool showProbabilities = false;
+	static bool showCalculate = false;
+
+	static int day1 = 0;
+	static int day2 = 0;
+	static int day3 = 0;
+
+	float matrix[3][3] = {
+		{ 0.4f, 0.6f, 0.0f },
+		{ 0.03f, 0.9f, 0.07f },
+		{ 0.2f, 0.4f, 0.4f },
+	};
+
+	ImGui::Begin("Markov's model", nullptr);
+	if (ImGui::Button("Show prob", { 100,50 })) {
+		showProbabilities = !showProbabilities;
+	}
+
+	if (showProbabilities) {
+		ImGui::Text("%.3f  %.3f  %.3f", matrix[0][0], matrix[0][1], matrix[0][2]);
+		ImGui::Text("%.3f  %.3f  %.3f", matrix[1][0], matrix[1][1], matrix[1][2]);
+		ImGui::Text("%.3f  %.3f  %.3f", matrix[2][0], matrix[2][1], matrix[2][2]);
+	}
+
+	ImGui::Columns(3);
+	ImGui::SetColumnWidth(0, 200);
+
+	ImGui::Text("Today");
+	ImGui::RadioButton("grows 1", &day1, 0);
+	ImGui::RadioButton("same 1", &day1, 1);
+	ImGui::RadioButton("drop 1", &day1, 2);
+
+	ImGui::NextColumn();
+	ImGui::Text("Tomorrow");
+	ImGui::RadioButton("grows 2", &day2, 0);
+	ImGui::RadioButton("same 2", &day2, 1);
+	ImGui::RadioButton("drop 2", &day2, 2);
+
+	ImGui::NextColumn();
+	ImGui::Text("The day after");
+	ImGui::RadioButton("grows 3", &day3, 0);
+	ImGui::RadioButton("same 3", &day3, 1);
+	ImGui::RadioButton("drop 3", &day3, 2);
+
+	ImGui::EndColumns();
+
+	if (ImGui::Button("Calculate", { 100,50 })) {
+		showCalculate = !showCalculate;
+	}
+
+	if (showCalculate) {
+		float result = matrix[day1][day2] * matrix[day2][day3];
+		ImGui::Text("Probability: %.3f%%", result * 100);
+	}
+
+	ImGui::End();
+
 	ImGui::PopStyleVar(1);
 }
 
