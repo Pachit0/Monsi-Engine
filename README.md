@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Sandbox/assets/textures/logo.png" alt="Monsi Engine Logo">
+  <img src="Sandbox/assets/Textures/logo.png" alt="Monsi Engine Logo">
   <h1>Monsi Engine</h1>
   <p>A lightweight, modular, and high-performance engine built in C++ for game and graphics development.</p>
 </div>
