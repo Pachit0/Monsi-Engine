@@ -737,7 +737,7 @@ namespace Monsi {
 			settingsChanged |= ImGui::Checkbox("Flip UVs", &settings.FlipUVs);
 			settingsChanged |= ImGui::Checkbox("Gen Smooth Normals", &settings.GenSmoothNormals);
 			settingsChanged |= ImGui::Checkbox("Calc Tangent Space", &settings.CalcTangentSpace);
-			settingsChanged |= ImGui::Checkbox("Pre-transform Vertices", &settings.PreTransformVertices);
+			//	settingsChanged |= ImGui::Checkbox("Pre-transform Vertices", &settings.PreTransformVertices);
 			settingsChanged |= ImGui::Checkbox("Make Left Handed", &settings.MakeLeftHanded);
 			settingsChanged |= ImGui::Checkbox("Flip Winding Order", &settings.FlipWindingOrder);
 
@@ -752,6 +752,8 @@ namespace Monsi {
 				std::string path = component.ModelAsset->GetFilePath();
 				if (!path.empty()) {
 					component.ModelAsset->LoadModel(path, settings);
+					component.ManualBlend = false;
+					component.TargetAnimation = -1;
 				}
 			}
 			});
@@ -1027,6 +1029,68 @@ namespace Monsi {
 		if (ImGui::Button(model->IsPaused() ? "Resume" : "Pause"))
 		{
 			model->TogglePause();
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Animation Blending");
+
+		if (animationCount == 0) {
+			ImGui::TextDisabled("(model has no animations)");
+			return;
+		}
+
+		auto drawAnimationCombo = [&model, animationCount](const char* label, int& index) {
+			index = glm::clamp(index, 0, (int)animationCount - 1);
+
+			std::string currentName = "[" + std::to_string(index) + "] " + model->GetAnimationName(index);
+			if (ImGui::BeginCombo(label, currentName.c_str())) {
+				for (int i = 0; i < animationCount; i++) {
+					std::string itemName = "[" + std::to_string(i) + "] " + model->GetAnimationName(i);
+					bool selected = (index == i);
+					if (ImGui::Selectable(itemName.c_str(), selected)) {
+						index = i;
+					}
+					if (selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			};
+
+		bool manualBlend = component.ManualBlend;
+		if (ImGui::Checkbox("Manual Blend", &manualBlend)) {
+			if (manualBlend) {
+				int current = (int)model->GetCurrentAnimationIndex();
+				component.BlendFrom = current;
+				component.BlendTo = glm::min(current + 1, (int)animationCount - 1);
+				component.BlendFactor = 0.0f;
+				component.TargetAnimation = -1;
+			}
+			else {
+				component.TargetAnimation = (component.BlendFactor >= 0.5f) ? component.BlendTo : component.BlendFrom;
+			}
+			component.ManualBlend = manualBlend;
+		}
+
+		if (component.ManualBlend) {
+			drawAnimationCombo("From", component.BlendFrom);
+			drawAnimationCombo("To", component.BlendTo);
+			ImGui::SliderFloat("Blend Factor", &component.BlendFactor, 0.0f, 1.0f, "%.2f");
+		}
+		else {
+			int currentAnimation = (int)model->GetCurrentAnimationIndex();
+			int selectedAnimation = currentAnimation;
+			drawAnimationCombo("Crossfade To", selectedAnimation);
+			if (selectedAnimation != currentAnimation) {
+				component.TargetAnimation = selectedAnimation;
+			}
+
+			ImGui::DragFloat("Fade Duration", &component.CrossFadeDuration, 0.01f, 0.0f, 5.0f, "%.2f");
+
+			if (model->IsBlending()) {
+				ImGui::TextDisabled("(blending...)");
+			}
 		}
 
 		ImGui::End();

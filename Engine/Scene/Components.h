@@ -37,6 +37,14 @@ namespace Monsi {
 		Reference<AnimatedModel> ModelAsset;
 		ModelImportSettings Settings;
 
+		int TargetAnimation = -1;
+		float CrossFadeDuration = 0.25f;
+
+		bool ManualBlend = false;
+		int BlendFrom = 0;
+		int BlendTo = 0;
+		float BlendFactor = 0.0f;
+
 		AnimatedModelComponent() = default;
 		AnimatedModelComponent(const AnimatedModelComponent& other) = default;
 		AnimatedModelComponent(const Reference<AnimatedModel>& model) : ModelAsset(model) {}

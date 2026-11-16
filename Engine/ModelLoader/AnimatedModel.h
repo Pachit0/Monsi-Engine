@@ -23,6 +23,8 @@ namespace Monsi {
 	class AnimatedModel
 	{
 	public:
+		static constexpr size_t MaxBones = 100;
+
 		AnimatedModel(const std::string& filepath);
 		AnimatedModel(const std::string& filepath, const ModelImportSettings& settings);
 
@@ -40,7 +42,12 @@ namespace Monsi {
 		float GetAnimationSpeed() const { return m_AnimationSpeed; }
 
 		void SetAnimationSpeed(float speed);
+
 		void SetAnimation(uint32_t index);
+		void CrossFadeTo(uint32_t index, float durationSeconds);
+		void SetBlend(uint32_t fromIndex, uint32_t toIndex, float factor);
+		bool IsBlending() const { return m_BlendMode != BlendMode::None; }
+
 		void SetModelSettings(const ModelImportSettings& settings) { m_ModelSettings = settings; }
 		const ModelImportSettings& GetModelSettings() const { return m_ModelSettings; }
 
@@ -49,11 +56,16 @@ namespace Monsi {
 		void TogglePause() { m_IsPaused = !m_IsPaused; }
 		bool IsPaused() const { return m_IsPaused; }
 	private:
+		enum class BlendMode { None, CrossFade, Manual };
+
 		void processNode(aiNode* node, const aiScene* scene);
 		AnimatedMesh processMesh(aiMesh* mesh, const aiScene* scene);
 		void extractBoneWeights(std::vector<AnimatedVertex>& vertices, aiMesh* mesh);
-		void updateNodeHierarchy(float animationTime, const aiNode* pNode, const glm::mat4& parentTransform);
-		const aiNodeAnim* findNodeAnim(const aiAnimation* animation, const std::string& nodeName);
+		void buildChannelMaps();
+		void advanceTime(uint32_t animIndex, float& time, float deltaTime);
+		void evaluatePose();
+		void updateNodeHierarchy(const aiNode* pNode, const glm::mat4& parentTransform);
+		const aiNodeAnim* findNodeAnim(uint32_t animIndex, const std::string& nodeName) const;
 		Reference<Texture2D> loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 
 	private:
@@ -63,10 +75,20 @@ namespace Monsi {
 		std::unordered_map<std::string, BoneInfo> m_BoneInfoMap;
 		std::vector<glm::mat4> m_FinalBoneTransforms;
 
+		std::vector<std::unordered_map<std::string, const aiNodeAnim*>> m_ChannelMaps;
+
 		uint32_t m_CurrentAnimIndex = 0;
 		float m_CurrentAnimTime = 0.0f;
 		float m_AnimationSpeed = 1.0f;
 		bool m_IsPaused = false;
+
+		BlendMode m_BlendMode = BlendMode::None;
+		uint32_t m_BlendFromIndex = 0;
+		float m_BlendFromTime = 0.0f;
+		float m_BlendFactor = 0.0f;
+		float m_BlendDuration = 0.0f;
+		float m_BlendElapsed = 0.0f;
+
 		glm::mat4 m_GlobalInverseTransform = glm::mat4(1.0f);
 		Assimp::Importer m_Importer;
 		const aiScene* m_Scene = nullptr;

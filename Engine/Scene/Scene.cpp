@@ -278,6 +278,23 @@ namespace Monsi {
 			for (auto entity : animatedModelGroup)
 			{
 				auto& model = animatedModelGroup.get<AnimatedModelComponent>(entity);
+				if (!model.ModelAsset) continue;
+
+				if (model.ManualBlend)
+				{
+					model.ModelAsset->SetBlend(
+						static_cast<uint32_t>(model.BlendFrom),
+						static_cast<uint32_t>(model.BlendTo),
+						model.BlendFactor);
+				}
+				else if (model.TargetAnimation >= 0)
+				{
+					model.ModelAsset->CrossFadeTo(
+						static_cast<uint32_t>(model.TargetAnimation),
+						model.CrossFadeDuration);
+					model.TargetAnimation = -1;
+				}
+
 				model.ModelAsset->UpdateAnimation(timeStep);
 				Renderer3D::DrawAnimatedModel(model.ModelAsset, GetWorldTransform(entity), glm::vec4(1.0f));
 			}

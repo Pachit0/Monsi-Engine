@@ -452,6 +452,17 @@ namespace Monsi {
 			out << YAML::BeginMap;
 			out << YAML::Key << "AssetPath" << YAML::Value << mc.ModelAsset->GetFilePath();
 			SerializeModelSettings(out, mc.ModelAsset->GetModelSettings());
+			out << YAML::Key << "Animation";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Index" << YAML::Value << mc.ModelAsset->GetCurrentAnimationIndex();
+			out << YAML::Key << "Speed" << YAML::Value << mc.ModelAsset->GetAnimationSpeed();
+			out << YAML::Key << "Paused" << YAML::Value << mc.ModelAsset->IsPaused();
+			out << YAML::Key << "CrossFadeDuration" << YAML::Value << mc.CrossFadeDuration;
+			out << YAML::Key << "ManualBlend" << YAML::Value << mc.ManualBlend;
+			out << YAML::Key << "BlendFrom" << YAML::Value << mc.BlendFrom;
+			out << YAML::Key << "BlendTo" << YAML::Value << mc.BlendTo;
+			out << YAML::Key << "BlendFactor" << YAML::Value << mc.BlendFactor;
+			out << YAML::EndMap;
 			out << YAML::EndMap;
 		}
 
@@ -731,6 +742,37 @@ namespace Monsi {
 					Reference<Monsi::AnimatedModel> model = CreateReference<Monsi::AnimatedModel>(assetPath, settings);
 
 					auto& amc = deserializedEntity.AddComponent<AnimatedModelComponent>(model);
+					auto animationNode = entityNode["Animation"];
+
+					auto& animatedModel = amc.ModelAsset;
+					const int animationCount = (int)animatedModel->GetAnimationCount();
+
+					amc.TargetAnimation = -1;
+					amc.CrossFadeDuration = ReadOrDefault<float>(animationNode, "CrossFadeDuration", amc.CrossFadeDuration);
+
+					if (animationCount > 0) {
+						int index = ReadOrDefault<int>(animationNode, "Index", 0);
+						amc.ManualBlend = ReadOrDefault<bool>(animationNode, "ManualBlend", false);
+						amc.BlendFrom = ReadOrDefault<int>(animationNode, "BlendFrom", 0);
+						amc.BlendTo = ReadOrDefault<int>(animationNode, "BlendTo", 0);
+						amc.BlendFactor = ReadOrDefault<float>(animationNode, "BlendFactor", 0.0f);
+
+						index = glm::clamp(index, 0, animationCount - 1);
+						amc.BlendFrom = glm::clamp(amc.BlendFrom, 0, animationCount - 1);
+						amc.BlendTo = glm::clamp(amc.BlendTo, 0, animationCount - 1);
+						amc.BlendFactor = glm::clamp(amc.BlendFactor, 0.0f, 1.0f);
+
+						animatedModel->SetAnimation((uint32_t)index);
+					}
+					else {
+						amc.ManualBlend = false;
+					}
+
+					animatedModel->SetAnimationSpeed(ReadOrDefault<float>(animationNode, "Speed", animatedModel->GetAnimationSpeed()));
+
+					if (ReadOrDefault<bool>(animationNode, "Paused", false)) {
+						animatedModel->Pause();
+					}
 				}
 
 				auto skyBoxComponentNode = entityNode["SkyBoxComponent"];
