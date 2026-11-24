@@ -8,6 +8,7 @@
 #include "VertexArray.h"
 #include "Material.h"
 #include "PrimitiveParams.h"
+#include "MonsiMath.h"
 
 namespace Monsi {
 
@@ -86,6 +87,8 @@ namespace Monsi {
 		uint64_t GetId() const { return m_Id; }
 		std::weak_ptr<void> GetLifetimeToken() const { return m_LifetimeToken; }
 
+		const Math::AABB& GetBounds() const { return m_Bounds; }
+		void SetBounds(const Math::AABB& bounds) { m_Bounds = bounds; }
 	private:
 		void setupMesh();
 
@@ -104,6 +107,8 @@ namespace Monsi {
 		static uint64_t s_NextId;
 		uint64_t m_Id = s_NextId++;
 		std::shared_ptr<char> m_LifetimeToken = std::make_shared<char>();
+
+		Math::AABB m_Bounds;
 
 		friend class MeshBuilder;
 	};
@@ -125,6 +130,8 @@ namespace Monsi {
 		uint64_t GetId() const { return m_Id; }
 		std::weak_ptr<void> GetLifetimeToken() const { return m_LifetimeToken; }
 
+		const Math::AABB& GetBounds() const { return m_Bounds; }
+		void SetBounds(const Math::AABB& bounds) { m_Bounds = bounds; }
 	private:
 		void setupMesh();
 
@@ -137,6 +144,7 @@ namespace Monsi {
 		Reference<VertexBuffer> m_VertexBuffer;
 		Reference<IndexBuffer> m_IndexBuffer;
 
+		Math::AABB m_Bounds;
 		static uint64_t s_NextId;
 		uint64_t m_Id = s_NextId++;
 		std::shared_ptr<char> m_LifetimeToken = std::make_shared<char>();

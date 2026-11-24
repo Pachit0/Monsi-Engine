@@ -172,6 +172,8 @@ namespace Monsi {
 			glm::mat4 viewMatrix = glm::inverse(cameraTransform);
 			glm::mat4 viewProj = mainCamera->GetProjectionMatrix() * viewMatrix;
 
+
+
 			SceneLighting sceneLighting;
 			auto DirectionalLightView = m_Registry.view<DirectionalLightComponent>();
 			for (auto entity : DirectionalLightView)
@@ -253,6 +255,7 @@ namespace Monsi {
 							Renderer3D::ResizeSSAO(m_ViewportWidth, m_ViewportHeight, ssaoComp.SSAOInstance);
 						}
 
+						ssaoComp.ApplySettings();
 						Renderer3D::DrawSSAO(ssaoComp.SSAOInstance, m_GBuffer, mainCamera->GetProjectionMatrix());
 					}
 				}
@@ -437,7 +440,9 @@ namespace Monsi {
 	template<>
 	void Scene::OnAddComponent<SSAOComponent>(Entity entity, SSAOComponent& component)
 	{
-		component.SSAOInstance = SSAO::Create(component.Settings);
+		if (!component.SSAOInstance) {
+			component.SSAOInstance = SSAO::Create(component.Settings);
+		}
 
 		uint32_t width = (m_ViewportWidth > 0) ? m_ViewportWidth : component.Settings.Width;
 		uint32_t height = (m_ViewportHeight > 0) ? m_ViewportHeight : component.Settings.Height;

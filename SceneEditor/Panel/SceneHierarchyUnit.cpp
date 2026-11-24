@@ -631,9 +631,17 @@ namespace Monsi {
 			});
 
 		DrawComponent<SSAOComponent>("SSAO", entity, [](auto& component) {
-			ImGui::DragInt("Kernel Size", &component.Settings.KernelSize, 1, 1, 128);
+			ImGui::DragInt("Kernel Size", &component.Settings.KernelSize, 1, 1, 64);
 			ImGui::DragFloat("Radius", &component.Settings.Radius, 0.01f, 0.01f, 10.0f, "%.3f");
 			ImGui::DragFloat("Bias", &component.Settings.Bias, 0.001f, 0.0f, 1.0f, "%.4f");
+			ImGui::DragFloat("Intensity", &component.Settings.Intensity, 0.05f, 0.1f, 10.0f, "%.2f");
+			if (ImGui::Button("Reset")) {
+				const SSAOSettings defaults;
+				component.Settings.KernelSize = defaults.KernelSize;
+				component.Settings.Radius = defaults.Radius;
+				component.Settings.Bias = defaults.Bias;
+				component.Settings.Intensity = defaults.Intensity;
+			}
 			});
 
 		DrawComponent<ShadowMapComponent>("ShadowMap", entity, [](auto& component) {
@@ -1169,14 +1177,17 @@ namespace Monsi {
 
 		ImGui::Separator();
 
-		Monsi::Renderer3DStats stats = Monsi::Renderer3D::GetStats();
-		ImGui::Text("Draw Calls: %u", stats.GetTotalDrawCalls());
+		Monsi::Renderer3DStatsPerPass stats = Monsi::Renderer3D::GetStats();
+		ImGui::Text("Draw Calls per pass: %u", stats.GetTotalDrawCalls());
 		ImGui::Text("  Model: %u", stats.ModelDrawCalls);
 		ImGui::Text("  Animated Model: %u", stats.AnimatedModelDrawCalls);
 		ImGui::Text("  Shadow Map: %u", stats.ShadowDrawCalls);
 		ImGui::Text("  Skybox: %u", stats.SkyboxDrawCalls);
 		ImGui::Text("Model Instances: %u", stats.ModelInstances + stats.AnimatedModelInstances);
 		ImGui::Text("Triangles: %u", stats.GetTotalTriangles());
+		ImGui::Separator();
+		ImGui::Text("Draw Calls total: %u", stats.GetTotalDrawCalls());
+		ImGui::Text("Draw Triangles total: %u", stats.GetTotalTriangles());
 
 		ImGui::End();
 	}

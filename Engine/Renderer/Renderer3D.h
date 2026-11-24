@@ -11,7 +11,7 @@
 
 namespace Monsi {
 
-	struct Renderer3DStats
+	struct Renderer3DStatsPerPass
 	{
 		uint32_t ModelDrawCalls = 0;
 		uint32_t ModelInstances = 0;
@@ -30,8 +30,20 @@ namespace Monsi {
 		uint32_t SSAODrawCalls = 0;
 		uint32_t SSAOTriangles = 0;
 
-		uint32_t GetTotalDrawCalls() const { return ModelDrawCalls + AnimatedModelDrawCalls + ShadowDrawCalls + SkyboxDrawCalls; }
-		uint32_t GetTotalTriangles() const { return ModelTriangles + AnimatedModelTriangles + ShadowTriangles + SkyboxTriangles; }
+		uint32_t TotalDrawCalls = 0;
+		uint32_t TotalTriangles = 0;
+
+		uint32_t GetTotalDrawCalls() const { return TotalDrawCalls; }
+		uint32_t GetTotalTriangles() const { return TotalTriangles; }
+
+		uint32_t GetPassSumDrawCalls() const
+		{
+			return ModelDrawCalls + AnimatedModelDrawCalls + ShadowDrawCalls + SkyboxDrawCalls + SSAODrawCalls;
+		}
+		uint32_t GetPassSumTriangles() const
+		{
+			return ModelTriangles + AnimatedModelTriangles + ShadowTriangles + SkyboxTriangles + SSAOTriangles;
+		}
 	};
 
 	class Renderer3D
@@ -63,7 +75,7 @@ namespace Monsi {
 		static void ResizeShadowMap(uint32_t width, uint32_t height, const Reference<ShadowMap>& shadowMap);
 		static void ResizeSSAO(uint32_t width, uint32_t height, const Reference<SSAO>& ssaoInstance);
 
-		static Renderer3DStats GetStats();
+		static Renderer3DStatsPerPass GetStats();
 		static void ResetStats();
 	};
 

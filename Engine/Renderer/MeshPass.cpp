@@ -10,6 +10,12 @@ namespace Monsi {
 
 	void MeshPass::Init()
 	{
+#ifdef MONSI_PER_DRAW
+		ENGINE_LOG_INFO("MeshPass: PER-DRAW mode");
+#else
+		ENGINE_LOG_INFO("MeshPass: BATCHED mode");
+#endif
+
 		m_Shader = Shader::Create(SHADER_PATH "StaticModelShader.glsl");
 
 		m_InstanceVBO = VertexBuffer::Create(MaxInstances * sizeof(MeshInstanceData));
@@ -32,13 +38,22 @@ namespace Monsi {
 
 	void MeshPass::Shutdown()
 	{
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+		m_RegisteredMeshes.clear();
+#else
 		m_MeshBatches.clear();
+#endif
 	}
 
 	void MeshPass::ClearBatches()
 	{
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+#else
 		m_MeshBatches.clear();
 		m_FlushList.clear();
+#endif
 	}
 
 	void MeshPass::RegisterMesh(const StaticMesh* mesh)
@@ -51,6 +66,7 @@ namespace Monsi {
 	void MeshPass::BeginScene(const glm::mat4& viewProj, const glm::vec3& viewPos, const Reference<LightingBuffer>& lighting)
 	{
 		m_Stats = {};
+		m_Frustum.Update(viewProj);
 
 		m_ViewProjection = viewProj;
 		m_Shader->Bind();
@@ -62,6 +78,17 @@ namespace Monsi {
 			lighting->Bind(m_Shader);
 		}
 
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+
+		for (auto it = m_RegisteredMeshes.begin(); it != m_RegisteredMeshes.end(); )
+		{
+			if (it->second.LifetimeToken.expired())
+				it = m_RegisteredMeshes.erase(it);
+			else
+				++it;
+		}
+#else
 		for (auto it = m_MeshBatches.begin(); it != m_MeshBatches.end(); )
 		{
 			if (it->second.LifetimeToken.expired())
@@ -74,6 +101,7 @@ namespace Monsi {
 				++it;
 			}
 		}
+#endif
 	}
 
 	void MeshPass::EndScene()
@@ -83,8 +111,7 @@ namespace Monsi {
 
 	void MeshPass::SetShadowMapData(const glm::mat4& lightSpaceMatrix, const Reference<ShadowMap>& shadowMap, float shadowIntensity)
 	{
-		if (!shadowMap)
-			return;
+		if (!shadowMap) return;
 
 		m_Shader->Bind();
 		m_Shader->setMat4("u_LightSpaceMatrix", lightSpaceMatrix);
@@ -106,8 +133,9 @@ namespace Monsi {
 	void MeshPass::SubmitModel(const Reference<StaticModel>& model, const glm::mat4& transform, const glm::vec4& color)
 	{
 		const auto& meshes = model->GetMeshes();
-		for (size_t i = 0; i < meshes.size(); i++)
+		for (size_t i = 0; i < meshes.size(); i++) {
 			SubmitMesh(&meshes[i], transform, color);
+		}
 	}
 
 	void MeshPass::SubmitMesh(const StaticMesh* meshPtr, const glm::vec3& position, const glm::vec3& size, const glm::vec4& color, const glm::vec3& rotation)
@@ -121,10 +149,86 @@ namespace Monsi {
 		SubmitMesh(meshPtr, transform, color);
 	}
 
+#ifdef MONSI_PER_DRAW
+
+	void MeshPass::SubmitMesh(const StaticMesh* meshPtr, const glm::mat4& transform, const glm::vec4& color)
+	{
+		if (!meshPtr) {
+			return;
+		}
+		
+		if (!m_Frustum.Intersects(meshPtr->GetBounds().Transformed(transform))) {
+			return;
+		}
+
+		auto& reg = m_RegisteredMeshes[meshPtr->GetId()];
+		if (reg.MeshPtr != meshPtr || reg.LifetimeToken.expired())
+		{
+			RegisterMesh(meshPtr);
+			reg.MeshPtr = meshPtr;
+			reg.LifetimeToken = meshPtr->GetLifetimeToken();
+		}
+
+		m_DrawItems.push_back({ meshPtr, meshPtr->GetLifetimeToken(),{ transform, color } });
+	}
+
+	void MeshPass::Flush()
+	{
+		if (m_DrawItems.empty())
+			return;
+
+		m_Shader->Bind();
+		m_Shader->setMat4("u_ViewProjection", m_ViewProjection);
+
+		for (const MeshDrawItem& item : m_DrawItems)
+		{
+			if (item.LifetimeToken.expired())
+				continue;
+
+			const StaticMesh& mesh = *item.MeshPtr;
+			Material* material = mesh.GetMaterial().get();
+
+			if (material)
+			{
+				material->Bind(m_Shader);
+
+				if (!material->DiffuseMap)
+				{
+					m_WhiteTexture->Bind(0);
+				}
+
+				RenderCommand::SetCullFaces(!material->DoubleSided);
+			}
+			else
+			{
+				m_WhiteTexture->Bind(0);
+				RenderCommand::SetCullFaces(true);
+			}
+
+			m_InstanceVBO->SetData(&item.Data, sizeof(MeshInstanceData));
+
+			auto& vao = mesh.GetVertexArray();
+			vao->Bind();
+
+			RenderCommand::DrawIndexed(vao, mesh.GetIndexCount());
+
+			m_Stats.DrawCalls++;
+			m_Stats.Instances++;
+			m_Stats.Triangles += mesh.GetIndexCount() / 3;
+		}
+
+		m_DrawItems.clear();
+	}
+#else
+
 	void MeshPass::SubmitMesh(const StaticMesh* meshPtr, const glm::mat4& transform, const glm::vec4& color)
 	{
 		uint64_t meshId = meshPtr->GetId();
 		auto& batch = m_MeshBatches[meshId];
+
+		if (!m_Frustum.Intersects(meshPtr->GetBounds().Transformed(transform))){
+			return;
+		}
 
 		if (batch.MeshPtr != meshPtr || batch.LifetimeToken.expired())
 		{
@@ -225,5 +329,7 @@ namespace Monsi {
 			m_Stats.Triangles += (mesh.GetIndexCount() / 3) * count;
 		}
 	}
+
+#endif
 
 }

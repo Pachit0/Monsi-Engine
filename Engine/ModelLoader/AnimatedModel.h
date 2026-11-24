@@ -55,6 +55,8 @@ namespace Monsi {
 		void Resume() { m_IsPaused = false; }
 		void TogglePause() { m_IsPaused = !m_IsPaused; }
 		bool IsPaused() const { return m_IsPaused; }
+
+		const Math::AABB& GetBounds() const { return m_Bounds; }
 	private:
 		enum class BlendMode { None, CrossFade, Manual };
 
@@ -94,6 +96,8 @@ namespace Monsi {
 		const aiScene* m_Scene = nullptr;
 		std::string m_Directory;
 		std::string m_FilePath;
+
+		Math::AABB m_Bounds;
 	};
 
 }

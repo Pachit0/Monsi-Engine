@@ -5,6 +5,7 @@
 #include "ShadowMap.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Shader.h"
+#include "MonsiMath.h"
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -55,6 +56,8 @@ namespace Monsi {
 		Reference<Shader> m_AnimatedShadowMapShader;
 
 		Stats m_Stats;
+
+		Math::Frustum m_LightFrustum;
 	};
 
 }

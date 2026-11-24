@@ -1,6 +1,7 @@
 #include "MonsiPch.h"
 #include "ShadowMapPass.h"
 #include "RenderCommand.h"
+#include <string>
 
 namespace Monsi {
 
@@ -62,12 +63,18 @@ namespace Monsi {
 	{
 		if (!meshPtr) return;
 
+		if (!m_LightFrustum.Intersects(meshPtr->GetBounds().Transformed(transform))) return;
+
 		m_ShadowMapShader->setMat4("u_Transform", transform);
 
 		auto& vao = meshPtr->GetVertexArray();
 		vao->Bind();
 
+#ifdef MONSI_PER_DRAW
+		RenderCommand::DrawIndexed(vao, meshPtr->GetIndexCount());
+#else
 		RenderCommand::DrawIndexedInstanced(vao, meshPtr->GetIndexCount(), 1);
+#endif
 
 		m_Stats.DrawCalls++;
 		m_Stats.Triangles += meshPtr->GetIndexCount() / 3;
@@ -89,7 +96,11 @@ namespace Monsi {
 		auto& vao = meshPtr->GetVertexArray();
 		vao->Bind();
 
+#ifdef MONSI_PER_DRAW
+		RenderCommand::DrawIndexed(vao, meshPtr->GetIndexCount());
+#else
 		RenderCommand::DrawIndexedInstanced(vao, meshPtr->GetIndexCount(), 1);
+#endif
 
 		m_Stats.DrawCalls++;
 		m_Stats.Triangles += meshPtr->GetIndexCount() / 3;
@@ -98,6 +109,7 @@ namespace Monsi {
 	void ShadowMapPass::DrawShadowMap(const glm::mat4& lightSpaceMatrix, const Reference<ShadowMap>& shadowMap)
 	{
 		m_Stats = {};
+		m_LightFrustum.Update(lightSpaceMatrix);
 
 		if (!shadowMap || (m_StaticCommands.empty() && m_AnimatedCommands.empty())) return;
 
@@ -117,8 +129,9 @@ namespace Monsi {
 				}
 				else if (cmd.ModelRef)
 				{
-					for (const auto& mesh : cmd.ModelRef->GetMeshes())
+					for (const auto& mesh : cmd.ModelRef->GetMeshes()) {
 						DrawMeshDepthOnly(&mesh, cmd.Transform);
+					}
 				}
 			}
 
@@ -132,12 +145,12 @@ namespace Monsi {
 
 			for (const auto& cmd : m_AnimatedCommands)
 			{
-				if (cmd.ModelRef)
-				{
-					for (const auto& mesh : cmd.ModelRef->GetMeshes())
-					{
-						DrawAnimatedMeshDepthOnly(&mesh, cmd.ModelRef.get(), cmd.Transform);
-					}
+				if (!cmd.ModelRef) continue;
+
+				if (!m_LightFrustum.Intersects(cmd.ModelRef->GetBounds().Transformed(cmd.Transform).Inflated(0.5f))) continue;
+
+				for (const auto& mesh : cmd.ModelRef->GetMeshes()) {
+					DrawAnimatedMeshDepthOnly(&mesh, cmd.ModelRef.get(), cmd.Transform);
 				}
 			}
 

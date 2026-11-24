@@ -6,6 +6,8 @@
 #include "VertexArray.h"
 #include "Texture.h"
 #include <glm/glm.hpp>
+#include <string>
+#include <vector>
 
 namespace Monsi {
 
@@ -33,12 +35,15 @@ namespace Monsi {
 		static constexpr uint32_t NormalTextureSlot = 1;
 		static constexpr uint32_t NoiseTextureSlot = 2;
 		static constexpr uint32_t SSAOTextureSlot = 0;
+		static constexpr uint32_t MaxKernelSize = 64;
 
 		Reference<Shader> m_SSAOShader;
 		Reference<Shader> m_SSAOBlurShader;
 
 		Reference<VertexArray> m_QuadVAO;
 		Reference<VertexBuffer> m_QuadVBO;
+
+		std::vector<std::string> m_SampleUniformNames;
 
 		Stats m_Stats;
 	};

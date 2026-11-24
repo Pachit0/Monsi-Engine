@@ -104,6 +104,10 @@ void Sandbox3D::OnLayerAttach()
 	m_SponzaEntity.AddComponent<Monsi::StaticModelComponent>(m_Sponza);
 	m_SponzaEntity.GetComponent<Monsi::TransformComponent>().Scale = glm::vec3(0.05f);
 
+	m_Sponza2Entity = m_Scene->CreateEntity("Sponza2");
+	m_Sponza2Entity.AddComponent<Monsi::StaticModelComponent>(m_Sponza);
+	m_Sponza2Entity.GetComponent<Monsi::TransformComponent>().Scale = glm::vec3(0.0005f);
+
 	m_CesiumManEntity = m_Scene->CreateEntity("CesiumMan");
 	m_CesiumManEntity.GetComponent<Monsi::TransformComponent>().Translation = glm::vec3(0.0f, 0.0f, 5.0f);
 

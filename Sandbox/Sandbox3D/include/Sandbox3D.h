@@ -57,6 +57,7 @@ private:
 	Monsi::Entity m_PointLightEntity;
 	Monsi::Entity m_BackpackEntity;
 	Monsi::Entity m_SponzaEntity;
+	Monsi::Entity m_Sponza2Entity;
 	Monsi::Entity m_SphereEntity;
 	Monsi::Entity m_CubeEntity;
 	Monsi::Entity m_TorusEntity;

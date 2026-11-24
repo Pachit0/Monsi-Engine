@@ -50,6 +50,29 @@ namespace Monsi {
 			glm::vec4 Color;
 		};
 
+		static constexpr uint32_t MaxInstances = 10000;
+		static constexpr uint32_t DefaultBatchReserve = 64;
+		static constexpr uint32_t ShadowMapTextureSlot = 3;
+
+		Math::Frustum m_Frustum;
+
+#ifdef MONSI_PER_DRAW
+		struct MeshDrawItem
+		{
+			const StaticMesh* MeshPtr = nullptr;
+			std::weak_ptr<void> LifetimeToken;
+			MeshInstanceData Data;
+		};
+
+		struct RegisteredMesh
+		{
+			const StaticMesh* MeshPtr = nullptr;
+			std::weak_ptr<void> LifetimeToken;
+		};
+
+		std::vector<MeshDrawItem> m_DrawItems;
+		std::unordered_map<uint64_t, RegisteredMesh> m_RegisteredMeshes;
+#else
 		struct MeshBatch
 		{
 			const StaticMesh* MeshPtr = nullptr;
@@ -58,12 +81,9 @@ namespace Monsi {
 			bool WarnedOverflow = false;
 		};
 
-		static constexpr uint32_t MaxInstances = 10000;
-		static constexpr uint32_t DefaultBatchReserve = 64;
-		static constexpr uint32_t ShadowMapTextureSlot = 3;
-
 		std::unordered_map<uint64_t, MeshBatch> m_MeshBatches;
 		std::vector<MeshBatch*> m_FlushList;
+#endif
 
 		Reference<VertexBuffer> m_InstanceVBO;
 		Reference<Shader> m_Shader;

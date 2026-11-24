@@ -51,7 +51,7 @@ namespace Monsi {
 
 	void SkyBoxPass::DrawSkybox(const glm::mat4& view, const glm::mat4& projection, const Reference<CubeMapTexture>& skyboxTexture)
 	{
-		glDisable(GL_CULL_FACE);
+		RenderCommand::SetCullFaces(false);
 		glm::mat4 staticView = glm::mat4(glm::mat3(view));
 		glm::mat4 viewProj = projection * staticView;
 
@@ -69,7 +69,7 @@ namespace Monsi {
 		m_Stats.Triangles = 36 / 3;
 
 		RenderCommand::SetDepthFunc(DepthComp::LESS);
-		glEnable(GL_CULL_FACE);
+		RenderCommand::SetCullFaces(true);
 	}
 
 }

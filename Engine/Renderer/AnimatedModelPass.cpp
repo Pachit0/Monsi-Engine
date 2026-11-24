@@ -4,6 +4,7 @@
 #include "Lighting.h"
 #include "Material.h"
 #include <algorithm>
+#include <string>
 #include <glm/ext/matrix_transform.hpp>
 
 namespace Monsi {
@@ -33,13 +34,22 @@ namespace Monsi {
 
 	void AnimatedModelPass::Shutdown()
 	{
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+		m_RegisteredMeshes.clear();
+#else
 		m_MeshBatches.clear();
+#endif
 	}
 
 	void AnimatedModelPass::ClearBatches()
 	{
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+#else
 		m_MeshBatches.clear();
 		m_FlushList.clear();
+#endif
 	}
 
 	void AnimatedModelPass::RegisterMesh(const AnimatedMesh* mesh)
@@ -52,6 +62,7 @@ namespace Monsi {
 	void AnimatedModelPass::BeginScene(const glm::mat4& viewProj, const glm::vec3& viewPos, const Reference<LightingBuffer>& lighting)
 	{
 		m_Stats = {};
+		m_Frustum.Update(viewProj);
 
 		m_ViewProjection = viewProj;
 		m_Shader->Bind();
@@ -63,6 +74,17 @@ namespace Monsi {
 			lighting->Bind(m_Shader);
 		}
 
+#ifdef MONSI_PER_DRAW
+		m_DrawItems.clear();
+
+		for (auto it = m_RegisteredMeshes.begin(); it != m_RegisteredMeshes.end(); )
+		{
+			if (it->second.expired())
+				it = m_RegisteredMeshes.erase(it);
+			else
+				++it;
+		}
+#else
 		for (auto it = m_MeshBatches.begin(); it != m_MeshBatches.end(); )
 		{
 			if (it->second.LifetimeToken.expired())
@@ -75,6 +97,7 @@ namespace Monsi {
 				++it;
 			}
 		}
+#endif
 	}
 
 	void AnimatedModelPass::EndScene()
@@ -107,8 +130,91 @@ namespace Monsi {
 		SubmitModel(model, transform, color);
 	}
 
+#ifdef MONSI_PER_DRAW
+
 	void AnimatedModelPass::SubmitModel(const Reference<AnimatedModel>& model, const glm::mat4& transform, const glm::vec4& color)
 	{
+		if (!model) return;
+
+		if (!m_Frustum.Intersects(model->GetBounds().Transformed(transform).Inflated(0.5f))) return;
+
+		for (const AnimatedMesh& mesh : model->GetMeshes())
+		{
+			auto it = m_RegisteredMeshes.find(&mesh);
+			if (it == m_RegisteredMeshes.end() || it->second.expired())
+			{
+				RegisterMesh(&mesh);
+				m_RegisteredMeshes[&mesh] = mesh.GetLifetimeToken();
+			}
+		}
+
+		m_DrawItems.push_back({ model, transform, color });
+	}
+
+	void AnimatedModelPass::Flush()
+	{
+		if (m_DrawItems.empty())
+			return;
+
+		m_Shader->Bind();
+		m_Shader->setMat4("u_ViewProjection", m_ViewProjection);
+
+		for (const DrawItem& item : m_DrawItems)
+		{
+			const auto& boneTransforms = item.Model->GetFinalBoneTransforms();
+			for (size_t i = 0; i < boneTransforms.size(); ++i)
+			{
+				std::string uniformName = "u_FinalBoneMatrices[" + std::to_string(i) + "]";
+				m_Shader->setMat4(uniformName.c_str(), boneTransforms[i]);
+			}
+
+			const InstanceData data{ item.Transform, item.Color };
+
+			for (const AnimatedMesh& mesh : item.Model->GetMeshes())
+			{
+				Material* material = mesh.GetMaterial().get();
+
+				if (material)
+				{
+					material->Bind(m_Shader);
+
+					if (!material->DiffuseMap)
+					{
+						m_WhiteTexture->Bind(0);
+					}
+
+					RenderCommand::SetCullFaces(!material->DoubleSided);
+				}
+				else
+				{
+					m_WhiteTexture->Bind(0);
+					RenderCommand::SetCullFaces(true);
+				}
+
+				m_InstanceVBO->SetData(&data, sizeof(InstanceData));
+
+				auto& vao = mesh.GetVertexArray();
+				vao->Bind();
+
+				RenderCommand::DrawIndexed(vao, mesh.GetIndexCount());
+
+				m_Stats.DrawCalls++;
+				m_Stats.Instances++;
+				m_Stats.Triangles += mesh.GetIndexCount() / 3;
+			}
+		}
+
+		m_DrawItems.clear();
+	}
+
+#else
+
+	void AnimatedModelPass::SubmitModel(const Reference<AnimatedModel>& model, const glm::mat4& transform, const glm::vec4& color)
+	{
+		if (!model) return;
+
+		if (!m_Frustum.Intersects(model->GetBounds().Transformed(transform).Inflated(0.5f))) return;
+
 		const auto& meshes = model->GetMeshes();
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
@@ -225,5 +331,7 @@ namespace Monsi {
 			m_Stats.Triangles += (mesh.GetIndexCount() / 3) * count;
 		}
 	}
+
+#endif
 
 }

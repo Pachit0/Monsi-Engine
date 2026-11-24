@@ -110,3 +110,8 @@ else()
     target_compile_definitions(Engine PUBLIC MODEL_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../Sandbox/assets/Models/")
     target_compile_definitions(Engine PUBLIC FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../Sandbox/assets/Fonts/")
 endif()
+
+option(MONSI_PER_DRAW "Plain per-draw rendering (no batching/instancing)" OFF)
+if(MONSI_PER_DRAW)
+    target_compile_definitions(Engine PUBLIC MONSI_PER_DRAW)
+endif()

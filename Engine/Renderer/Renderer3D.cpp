@@ -7,6 +7,7 @@
 #include "ShadowMapPass.h"
 #include "SSAOPass.h"
 #include "GBufferPass.h"
+#include "RenderCommand.h"
 
 namespace Monsi {
 
@@ -206,9 +207,9 @@ namespace Monsi {
 		s_Data.Lighting->SetLighting(lighting);
 	}
 
-	Renderer3DStats Renderer3D::GetStats()
+	Renderer3DStatsPerPass Renderer3D::GetStats()
 	{
-		Renderer3DStats stats;
+		Renderer3DStatsPerPass stats;
 
 		if (s_Data.Mesh)
 		{
@@ -247,6 +248,10 @@ namespace Monsi {
 			stats.SSAOTriangles = ssaoStats.Triangles;
 		}
 
+		const auto& drawStats = RenderCommand::GetDrawStats();
+		stats.TotalDrawCalls = drawStats.DrawCalls;
+		stats.TotalTriangles = drawStats.Triangles;
+
 		return stats;
 	}
 
@@ -269,6 +274,8 @@ namespace Monsi {
 
 		if (s_Data.gBufferPass)
 			s_Data.gBufferPass->ResetStats();
+
+		RenderCommand::ResetDrawStats();
 	}
 
 }

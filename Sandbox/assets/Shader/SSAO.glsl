@@ -28,6 +28,7 @@ uniform vec3 u_Samples[64];
 uniform int u_KernelSize;
 uniform float u_Radius;
 uniform float u_Bias;
+uniform float u_Intensity = 2.0;
 uniform vec2 u_NoiseScale;
 
 uniform int u_DebugMode;
@@ -44,15 +45,24 @@ void main()
         return;
     }
 
-    vec3 normal = normalize(texture(gNormal, v_TexCoord).xyz);
+    vec3 rawNormal = texture(gNormal, v_TexCoord).xyz;
+    if (length(rawNormal) < 0.1)
+    {
+        o_Color = 1.0;
+        return;
+    }
+
+    vec3 normal = normalize(rawNormal);
     vec3 randomVec = normalize(texture(texNoise, v_TexCoord * u_NoiseScale).xyz);
 
     vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
     vec3 bitangent = cross(normal, tangent);
     mat3 TBN = mat3(tangent, bitangent, normal);
 
+    int kernelSize = min(u_KernelSize, 64);
+
     float occlusion = 0.0;
-    for (int i = 0; i < u_KernelSize; ++i)
+    for (int i = 0; i < kernelSize; ++i)
     {
         vec3 samplePos = TBN * u_Samples[i];
         samplePos = fragPos + samplePos * u_Radius;
@@ -62,13 +72,16 @@ void main()
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5 + 0.5;
 
+        if (offset.x < 0.0 || offset.x > 1.0 || offset.y < 0.0 || offset.y > 1.0)
+            continue;
+
         float sampleDepth = texture(gPosition, offset.xy).z;
 
         float rangeCheck = smoothstep(0.0, 1.0, u_Radius / max(abs(fragPos.z - sampleDepth), 0.0001));
         occlusion += (sampleDepth >= samplePos.z + u_Bias ? 1.0 : 0.0) * rangeCheck;
     }
 
-    occlusion = 1.0 - (occlusion / float(u_KernelSize));
+    occlusion = 1.0 - (occlusion / float(kernelSize));
 
-    o_Color = occlusion;
+    o_Color = pow(clamp(occlusion, 0.0, 1.0), u_Intensity);
 }

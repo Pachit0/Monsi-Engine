@@ -3,6 +3,7 @@
 #include "FrameBuffer.h"
 #include "Shader.h"
 #include "StaticModel.h"
+#include "MonsiMath.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -32,6 +33,7 @@ namespace Monsi {
 		glm::mat4 m_View{ 1.0f };
 		glm::mat4 m_Projection{ 1.0f };
 		Stats m_Stats;
+		Math::Frustum m_Frustum;
 
 		GLint m_PreviousFramebuffer = 0;
 		GLint m_PreviousViewport[4] = { 0, 0, 0, 0 };

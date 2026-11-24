@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include <vector>
 #include <glm/glm.hpp>
 
 namespace Monsi {
@@ -12,6 +13,7 @@ namespace Monsi {
 		int KernelSize = 64;
 		float Radius = 0.5f;
 		float Bias = 0.025f;
+		float Intensity = 2.0f;
 	};
 
 	class SSAO

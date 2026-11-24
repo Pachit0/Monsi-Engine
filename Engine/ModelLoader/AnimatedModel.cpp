@@ -178,7 +178,8 @@ namespace Monsi {
 			aiProcess_LimitBoneWeights |
 			aiProcess_PopulateArmatureData |
 			aiProcess_SortByPType |
-			aiProcess_GenUVCoords;
+			aiProcess_GenUVCoords |
+			aiProcess_GenBoundingBoxes;
 
 		if (settings.GenSmoothNormals) flags |= aiProcess_GenSmoothNormals;
 		if (settings.CalcTangentSpace) flags |= aiProcess_CalcTangentSpace;

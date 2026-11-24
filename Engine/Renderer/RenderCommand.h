@@ -6,6 +6,14 @@ namespace Monsi {
 
 	class RenderCommand {
 	public:
+		struct DrawStats {
+			uint32_t DrawCalls = 0;
+			uint32_t Triangles = 0;
+		};
+
+		inline static const DrawStats& GetDrawStats() { return s_DrawStats; }
+		inline static void ResetDrawStats() { s_DrawStats = {}; }
+
 		inline static void Init() {
 			s_RendererAPI->Init();
 		}
@@ -32,13 +40,21 @@ namespace Monsi {
 
 		inline static void DrawIndexed(const Reference<VertexArray>& vertexArray, uint32_t count = 0) {
 			s_RendererAPI->DrawIndexed(vertexArray, count);
+
+			const uint32_t indexCount = count ? count : vertexArray->GetIndexBuffer()->GetCount();
+			s_DrawStats.DrawCalls++;
+			s_DrawStats.Triangles += indexCount / 3;
 		}
 
 		inline static void DrawIndexedInstanced(const Reference<VertexArray>& vertexArray, uint32_t indexCount, uint32_t instanceCount) {
 			s_RendererAPI->DrawIndexedInstanced(vertexArray, indexCount, instanceCount);
+
+			s_DrawStats.DrawCalls++;
+			s_DrawStats.Triangles += (indexCount / 3) * instanceCount;
 		}
 	private:
 		static RendererAPI* s_RendererAPI;
+		inline static DrawStats s_DrawStats{};
 	};
 
 }

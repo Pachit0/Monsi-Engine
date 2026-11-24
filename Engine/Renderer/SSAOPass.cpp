@@ -2,6 +2,7 @@
 #include "SSAOPass.h"
 #include "RenderCommand.h"
 #include <glad/glad.h>
+#include <algorithm>
 
 namespace Monsi {
 
@@ -22,6 +23,11 @@ namespace Monsi {
 		m_QuadVBO->SetLayout({ { ShaderDataType::Float2, "a_Position" },{ ShaderDataType::Float2, "a_TexCoord" } });
 		m_QuadVAO->AddVertexBuffer(m_QuadVBO);
 
+		m_SampleUniformNames.resize(MaxKernelSize);
+		for (uint32_t i = 0; i < MaxKernelSize; ++i) {
+			m_SampleUniformNames[i] = "u_Samples[" + std::to_string(i) + "]";
+		}
+
 		m_SSAOShader->Bind();
 		m_SSAOShader->setInt("gPosition", PositionTextureSlot);
 		m_SSAOShader->setInt("gNormal", NormalTextureSlot);
@@ -37,6 +43,7 @@ namespace Monsi {
 		m_QuadVBO.reset();
 		m_SSAOShader.reset();
 		m_SSAOBlurShader.reset();
+		m_SampleUniformNames.clear();
 	}
 
 	void SSAOPass::DrawSSAO(const Reference<SSAO>& ssaoInstance, const Reference<FrameBuffer>& gBuffer, const glm::mat4& projection)
@@ -53,20 +60,31 @@ namespace Monsi {
 		GLint previousViewport[4] = { 0, 0, 0, 0 };
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
 		glGetIntegerv(GL_VIEWPORT, previousViewport);
+		const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+		const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+		const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
 
 		ssaoInstance->BindSSAOFramebuffer();
 		RenderCommand::Clear();
+
+		const int kernelSize = std::min<int>(settings.KernelSize, (int)MaxKernelSize);
 
 		m_SSAOShader->Bind();
 		m_SSAOShader->setMat4("u_Projection", projection);
 		m_SSAOShader->setFloat("u_Radius", settings.Radius);
 		m_SSAOShader->setFloat("u_Bias", settings.Bias);
-		m_SSAOShader->setInt("u_KernelSize", settings.KernelSize);
+		m_SSAOShader->setFloat("u_Intensity", settings.Intensity);
+		m_SSAOShader->setInt("u_KernelSize", kernelSize);
 		m_SSAOShader->setVec2("u_NoiseScale", glm::vec2(settings.Width / 4.0f, settings.Height / 4.0f));
 
 		const auto& kernel = ssaoInstance->GetKernel();
-		for (size_t i = 0; i < kernel.size(); ++i) {
-			m_SSAOShader->setVec3("u_Samples[" + std::to_string(i) + "]", kernel[i]);
+		const size_t sampleCount = std::min<size_t>(kernel.size(), (size_t)kernelSize);
+		for (size_t i = 0; i < sampleCount; ++i) {
+			m_SSAOShader->setVec3(m_SampleUniformNames[i], kernel[i]);
 		}
 
 		glBindTextureUnit(PositionTextureSlot, gBuffer->GetColorTextureID());
@@ -82,6 +100,10 @@ namespace Monsi {
 		glBindTextureUnit(SSAOTextureSlot, ssaoInstance->GetSSAOTextureID());
 
 		RenderScreenQuad();
+
+		if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+		if (blendWasEnabled) glEnable(GL_BLEND);
+		if (cullWasEnabled)  glEnable(GL_CULL_FACE);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)previousFramebuffer);
 		glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);

@@ -26,7 +26,7 @@ namespace Monsi {
 		m_TextureCache.clear();
 
 		Assimp::Importer importer;
-		unsigned int flags = aiProcess_Triangulate;
+		unsigned int flags = aiProcess_Triangulate | aiProcess_GenBoundingBoxes;
 
 		if (settings.GenSmoothNormals) flags |= aiProcess_GenSmoothNormals;
 		if (settings.CalcTangentSpace) flags |= aiProcess_CalcTangentSpace;
@@ -118,7 +118,14 @@ namespace Monsi {
 			meshMaterial->NormalMap = loadMaterialTexture(material, aiTextureType_HEIGHT);
 		}
 
-		return StaticMesh(vertices, indices, meshMaterial);
+		StaticMesh staticMesh(vertices, indices, meshMaterial);
+
+		Math::AABB bounds;
+		bounds.Min = { mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z };
+		bounds.Max = { mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z };
+		staticMesh.SetBounds(bounds);
+
+		return staticMesh;
 	}
 
 	Reference<Texture2D> StaticModel::loadMaterialTexture(aiMaterial* mat, aiTextureType type)

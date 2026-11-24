@@ -142,6 +142,21 @@ namespace Monsi {
 				Settings = SSAOInstance->GetSettings();
 			}
 		}
+
+		void ApplySettings()
+		{
+			if (!SSAOInstance) {
+				return;
+			}
+
+			const SSAOSettings& live = SSAOInstance->GetSettings();
+			if (live.Radius != Settings.Radius ||
+				live.Bias != Settings.Bias ||
+				live.KernelSize != Settings.KernelSize)
+			{
+				SSAOInstance->SetSettings(Settings);
+			}
+		}
 	};
 
 	struct RelationshipComponent
